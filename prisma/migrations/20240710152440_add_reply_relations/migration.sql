@@ -1,0 +1,7 @@
+-- CreateTable
+CREATE TABLE "ReplyRelations" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "parent" TEXT NOT NULL,
+    "child" TEXT NOT NULL,
+    "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

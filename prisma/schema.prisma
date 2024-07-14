@@ -1,0 +1,59 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
+}
+
+model Posts {
+  id    Int    @id @default(autoincrement())
+  post_type  String
+  post_text String
+  timestamp DateTime @default(now())
+  host String
+}
+
+model Likes {
+  id    Int    @id @default(autoincrement())
+  post_id String
+}
+model Replies {
+  id    Int    @id @default(autoincrement())
+  reply_type  String
+  reply_text String
+  parent  String
+  timestamp DateTime @default(now())
+}
+
+model ReplyRelations {
+  id Int @id @default(autoincrement())
+  parent String
+  child String
+  timestamp DateTime @default(now())
+}
+
+model Signals {
+  id    Int    @id @default(autoincrement())
+  type  String
+  origin String
+  value String
+  timestamp DateTime @default(now())
+  host String
+}
+
+model Following {
+  id Int @id @default(autoincrement())
+  username String
+  host String
+  timestamp DateTime @default(now())
+}
+
+model Followers {
+  id Int @id @default(autoincrement())
+  username String
+  host String
+  timestamp DateTime @default(now())
+}
