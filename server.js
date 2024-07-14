@@ -323,6 +323,7 @@ app.get("/feeds", async (req, res) => {
   const result = await prisma.signals.findMany({
     where: {
       type: "new post",
+      host: req.hostname,
     },
   });
   res.json(result);
