@@ -346,6 +346,7 @@ app.post("/message", async (req, res) => {
       timestamp: true,
     },
   });
+  if (!sockets[req.hostname]) sockets[req.hostname] = [];
   sockets[req.hostname].forEach((socket) => {
     socket.send(
       JSON.stringify({
