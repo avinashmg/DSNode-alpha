@@ -358,6 +358,16 @@ app.post("/message", async (req, res) => {
   console.log(respomse);
 });
 
+app.post("/get_messages", async (req, res) => {
+  const result = await prisma.messages.findMany({
+    where: {
+      host: req.hostname,
+      username: req.body.username,
+    },
+  });
+  res.status(200).json(result);
+});
+
 app.post("/signal", async (req, res) => {
   const type = req.body.type;
   const from = req.body.from;
