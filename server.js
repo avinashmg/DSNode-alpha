@@ -46,7 +46,7 @@ app.get("/", async (req, res) => {
   let data = await fs.promises.readFile(`./profile/${hostname}.json`, "utf8");
   data = JSON.parse(data);
   delete data.password;
-  data["online"] = is_online(req.hostname);
+  data.profile["online"] = is_online(req.hostname);
   res.json(data);
 });
 
@@ -328,6 +328,9 @@ app.get("/feeds", async (req, res) => {
     where: {
       type: "new post",
       host: req.hostname,
+    },
+    orderBy: {
+      timestamp: "desc",
     },
   });
   res.json(result);
