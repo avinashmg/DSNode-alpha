@@ -57,3 +57,11 @@ model Followers {
   host String
   timestamp DateTime @default(now())
 }
+
+model Messages {
+  id Int @id @default(autoincrement())
+  username String
+  message String
+  host String
+  timestamp DateTime @default(now())
+}

@@ -3,6 +3,7 @@ const cors = require("cors");
 const fs = require("fs");
 const multer = require("multer");
 const { PrismaClient } = require("@prisma/client");
+const { timeStamp } = require("console");
 const axios = require("axios").default;
 
 //Frequency Based Cache for addresses and usernames
@@ -329,6 +330,34 @@ app.get("/feeds", async (req, res) => {
   res.json(result);
 });
 
+app.post("/message", async (req, res) => {
+  console.log(req.query);
+  const result = await prisma.messages.create({
+    data: {
+      username: req.body.username,
+      message: req.body.msg,
+      host: req.hostname,
+    },
+    select: {
+      id: true,
+      timestamp: true,
+    },
+  });
+  let data = await fs.promises.readFile(
+    `./profile/${req.profilecode}.json`,
+    "utf8"
+  );
+  res.status(200).json(result);
+  data = JSON.parse(data);
+  const address = await address_from_username(req.body.username);
+  response = await axios.post(`https://${address}/signal/`, {
+    type: "message recieved",
+    value: req.body.msg,
+    from: req.hostname,
+  });
+  console.log(respomse);
+});
+
 app.post("/signal", async (req, res) => {
   const type = req.body.type;
   const from = req.body.from;
@@ -375,6 +404,25 @@ app.post("/signal", async (req, res) => {
         },
       });
       res.status(200).json({ success: true });
+      break;
+    case "message recieved":
+      // Add message to the message table
+      {
+        const originprofile = await axios.get(`https://${from}`);
+        msg = JSON.stringify({ from: "own", msg: value });
+        const res = await prisma.messages.create({
+          data: {
+            username: originprofile.data.profile.username,
+            message: msg,
+            host: req.hostname,
+          },
+          select: {
+            id: true,
+            timestamp: true,
+          },
+        });
+      }
+      break;
     default:
       break;
   }
