@@ -5,8 +5,7 @@ const multer = require("multer");
 const { PrismaClient } = require("@prisma/client");
 const { timeStamp } = require("console");
 const axios = require("axios").default;
-
-//Frequency Based Cache for addresses and usernames
+const WebSocket = require("ws");
 
 const prisma = new PrismaClient();
 
@@ -47,6 +46,7 @@ app.get("/", async (req, res) => {
   let data = await fs.promises.readFile(`./profile/${hostname}.json`, "utf8");
   data = JSON.parse(data);
   delete data.password;
+  data["online"] = is_online(req.hostname);
   res.json(data);
 });
 
@@ -135,6 +135,7 @@ app.get("/like/", async (req, res) => {
   const result = await prisma.likes.findMany({
     where: {
       post_id: req.query.id,
+      host: req.hostname,
     },
   });
   if (result.length === 1) {
@@ -149,6 +150,7 @@ app.post("/like/", async (req, res) => {
   const result = await prisma.likes.create({
     data: {
       post_id: post_id,
+      host: req.hostname,
     },
   });
   res.status(200).json({ success: true });
@@ -159,6 +161,7 @@ app.post("/unlike/", async (req, res) => {
   const result = await prisma.likes.deleteMany({
     where: {
       post_id: post_id,
+      host: req.hostname,
     },
   });
   res.status(200).json({ success: true });
@@ -343,6 +346,16 @@ app.post("/message", async (req, res) => {
       timestamp: true,
     },
   });
+  sockets[req.hostname].forEach((socket) => {
+    socket.send(
+      JSON.stringify({
+        type: "message",
+        message: req.body.msg,
+        room: req.body.username,
+      }),
+      "utf8"
+    );
+  });
   let data = await fs.promises.readFile(
     `./profile/${req.profilecode}.json`,
     "utf8"
@@ -359,13 +372,26 @@ app.post("/message", async (req, res) => {
 });
 
 app.post("/get_messages", async (req, res) => {
-  const result = await prisma.messages.findMany({
-    where: {
-      host: req.hostname,
-      username: req.body.username,
-    },
-  });
-  res.status(200).json(result);
+  if (req.body.username == null) {
+    const result = await prisma.messages.findMany({
+      where: {
+        host: req.hostname,
+      },
+      orderBy: {
+        timestamp: "desc",
+      },
+      distinct: ["username"],
+    });
+    res.status(200).json(result);
+  } else {
+    const result = await prisma.messages.findMany({
+      where: {
+        host: req.hostname,
+        username: req.body.username,
+      },
+    });
+    res.status(200).json(result);
+  }
 });
 
 app.post("/signal", async (req, res) => {
@@ -438,11 +464,44 @@ app.post("/signal", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
 
+//Create websocket server and attach to the Express app
+const wss = new WebSocket.Server({ server });
+
+let sockets = {}; //keep track of connected clients
+
+wss.on("connection", (ws, req) => {
+  const hostname = req.headers.host;
+  if (sockets[hostname]) {
+    sockets[hostname].push(ws);
+  } else {
+    sockets[hostname] = [ws];
+  }
+
+  console.log("WebSocket client connected");
+
+  ws.on("message", (message) => {
+    const buffer = Buffer.from(message);
+    console.log("Received message:", buffer.toString("utf8"));
+    ws.send("Echo: " + Buffer.from(`Hostname : ${hostname}`, "utf8"));
+  });
+
+  ws.on("close", () => {
+    sockets[hostname] = sockets[hostname].filter((w) => w !== ws);
+    console.log("WebSocket client disconnected");
+  });
+});
+
 //Functions
+
+const is_online = (host) => {
+  if (!sockets[host]) return false;
+  return sockets[host].length > 0;
+};
+
 const fbc = {};
 
 const address_from_username = async (username) => {

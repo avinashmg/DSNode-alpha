@@ -19,6 +19,7 @@ model Posts {
 model Likes {
   id    Int    @id @default(autoincrement())
   post_id String
+  host String @default("localhost")
 }
 model Replies {
   id    Int    @id @default(autoincrement())
