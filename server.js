@@ -268,7 +268,7 @@ app.post("/reply", async (req, res) => {
   res.status(200).json({ success: true });
 });
 
-app.get("/following/", async (req, res) => {
+app.get("/following_list/", async (req, res) => {
   const result = await prisma.following.findMany({
     where: {
       host: req.hostname,
