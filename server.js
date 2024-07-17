@@ -130,10 +130,13 @@ app.get("/p/:post_id", async (req, res) => {
     "utf8"
   );
   data = JSON.parse(data);
-  reply[0].dp = data.profile.profile_image;
-  reply[0].fullname = data.profile.fullname;
-  reply[0].verified = data.profile.verified;
-  res.json(reply);
+  if (reply.length == 0) res.status(404).send();
+  else {
+    reply[0].dp = data.profile.profile_image;
+    reply[0].fullname = data.profile.fullname;
+    reply[0].verified = data.profile.verified;
+    res.json(reply);
+  }
 });
 
 app.delete("/p/:post_id", async (req, res) => {
