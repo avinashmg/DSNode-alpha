@@ -43,11 +43,16 @@ app.post("/file_upload", upload.array("files"), async (req, res) => {
 
 app.get("/", async (req, res) => {
   let hostname = req.profilecode;
-  let data = await fs.promises.readFile(`./profile/${hostname}.json`, "utf8");
-  data = JSON.parse(data);
-  delete data.password;
-  data.profile["online"] = is_online(req.hostname);
-  res.json(data);
+  try {
+    let data = await fs.promises.readFile(`./profile/${hostname}.json`, "utf8");
+    data = JSON.parse(data);
+    delete data.password;
+    data.profile["online"] = is_online(req.hostname);
+    res.json(data);
+  } catch (error) {
+    console.log(error);
+    res.status(400).send();
+  }
 });
 
 app.post("/sign_in", async (req, res) => {
@@ -235,6 +240,32 @@ app.post("/reply", async (req, res) => {
       console.error(error);
     });
   res.status(200).json({ success: true });
+});
+
+app.get("/following/", async (req, res) => {
+  const result = await prisma.following.findMany({
+    where: {
+      host: req.hostname,
+    },
+    select: {
+      username: true,
+    },
+    distinct: ["username"],
+  });
+  res.json(result);
+});
+
+app.get("/followers", async (req, res) => {
+  const result = await prisma.followers.findMany({
+    where: {
+      host: req.hostname,
+    },
+    select: {
+      username: true,
+    },
+    distinct: ["username"],
+  });
+  res.json(result);
 });
 
 app.post("/follow_id/", async (req, res) => {
