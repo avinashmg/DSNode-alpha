@@ -136,6 +136,29 @@ app.get("/p/:post_id", async (req, res) => {
   res.json(reply);
 });
 
+app.delete("/p/:post_id", async (req, res) => {
+  const result = await prisma.posts.deleteMany({
+    where: {
+      id: parseInt(req.params.post_id),
+      host: req.hostname,
+    },
+  });
+  res.status(200).json({ success: true });
+});
+
+app.put("/p/:post_id", async (req, res) => {
+  const result = await prisma.posts.updateMany({
+    where: {
+      id: parseInt(req.params.post_id),
+      host: req.hostname,
+    },
+    data: {
+      post_text: req.body.post_text,
+    },
+  });
+  res.status(200).json({ success: true });
+});
+
 app.get("/like/", async (req, res) => {
   const result = await prisma.likes.findMany({
     where: {
