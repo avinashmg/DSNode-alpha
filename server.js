@@ -24,7 +24,15 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
-app.use("/files", express.static("files"));
+app.use(
+  "/files",
+  express.static("files", {
+    maxAge: "1d",
+    setHeaders: function (res, path, stat) {
+      res.setHeader("Cache-Control", "public, max-age=86400");
+    },
+  })
+);
 
 //Middleware to find get the profile
 const profilecode = (req, res, next) => {
