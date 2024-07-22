@@ -66,3 +66,11 @@ model Messages {
   host String
   timestamp DateTime @default(now())
 }
+
+model Saved {
+ id Int @id @default(autoincrement())
+  username String
+  resource String
+  host String
+  timestamp DateTime @default(now())
+}

@@ -455,6 +455,29 @@ app.post("/get_messages", async (req, res) => {
   }
 });
 
+app.get("/saved", async (req, res) => {
+  const result = await prisma.saved.findMany({
+    where: {
+      host: req.hostname,
+    },
+    orderBy: {
+      timestamp: "desc",
+    },
+  });
+  res.json(result);
+});
+
+app.post("/saved", async (req, res) => {
+  const result = await prisma.saved.create({
+    data: {
+      username: req.body.username,
+      resource: req.body.resource,
+      host: req.hostname,
+    },
+  });
+  res.status(200).json({ success: true });
+});
+
 app.post("/signal", async (req, res) => {
   const type = req.body.type;
   const from = req.body.from;
