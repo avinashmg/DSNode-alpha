@@ -595,21 +595,21 @@ app.post("/signal", async (req, res) => {
           host: req.hostname,
         },
       });
-      if (sockets[req.hostname].length > 0) {
-        sockets[req.hostname].forEach((socket) => {
-          socket.send(
-            JSON.stringify({
-              icon: originprofile2.data.profile.profile_image,
-              type: "notification",
-              sender: "Deltaverse",
-              text: `${originprofile2.data.profile.fullname} shared a new post`,
-              action: `/u/${originprofile2.data.profile.username}/p/${post_id}/`,
-              nonce: Math.random(),
-            }),
-            "utf8"
-          );
-        });
-      }
+      if (!sockets[req.hostname]) sockets[req.hostname] = [];
+      sockets[req.hostname].forEach((socket) => {
+        socket.send(
+          JSON.stringify({
+            icon: originprofile2.data.profile.profile_image,
+            type: "notification",
+            sender: "Deltaverse",
+            text: `${originprofile2.data.profile.fullname} shared a new post`,
+            action: `/u/${originprofile2.data.profile.username}/p/${post_id}/`,
+            nonce: Math.random(),
+          }),
+          "utf8"
+        );
+      });
+
       break;
     case "message recieved":
       // Add message to the message table
