@@ -586,29 +586,31 @@ app.post("/signal", async (req, res) => {
       });
       const post_id = value.split("/")[2];
       res.status(200).json({ success: true });
-      const res3 = await prisma.notifications.create({
-        data: {
-          sender: "self",
-          text: `${originprofile2.data.profile.fullname} shared a new post`,
-          action: `/u/${originprofile2.data.profile.username}/p/${post_id}/`,
-          status: "unread",
-          host: req.hostname,
-        },
-      });
-      if (!sockets[req.hostname]) sockets[req.hostname] = [];
-      sockets[req.hostname].forEach((socket) => {
-        socket.send(
-          JSON.stringify({
-            icon: originprofile2.data.profile.profile_image,
-            type: "notification",
-            sender: "Deltaverse",
+      if (originprofile2.data.profile.address !== req.hostname) {
+        const res3 = await prisma.notifications.create({
+          data: {
+            sender: "self",
             text: `${originprofile2.data.profile.fullname} shared a new post`,
             action: `/u/${originprofile2.data.profile.username}/p/${post_id}/`,
-            nonce: Math.random(),
-          }),
-          "utf8"
-        );
-      });
+            status: "unread",
+            host: req.hostname,
+          },
+        });
+        if (!sockets[req.hostname]) sockets[req.hostname] = [];
+        sockets[req.hostname].forEach((socket) => {
+          socket.send(
+            JSON.stringify({
+              icon: originprofile2.data.profile.profile_image,
+              type: "notification",
+              sender: "Deltaverse",
+              text: `${originprofile2.data.profile.fullname} shared a new post`,
+              action: `/u/${originprofile2.data.profile.username}/p/${post_id}/`,
+              nonce: Math.random(),
+            }),
+            "utf8"
+          );
+        });
+      }
 
       break;
     case "message recieved":
