@@ -131,6 +131,7 @@ app.get("/p/:post_id", async (req, res) => {
   const reply = await prisma.posts.findMany({
     where: {
       id: parseInt(req.params.post_id),
+      host: req.hostname,
     },
   });
   let data = await fs.promises.readFile(
@@ -486,6 +487,56 @@ app.post("/saved", async (req, res) => {
   res.status(200).json({ success: true });
 });
 
+app.get("/notifications", async (req, res) => {
+  const result = await prisma.notifications.findMany({
+    where: {
+      host: req.hostname,
+    },
+    orderBy: {
+      timestamp: "desc",
+    },
+    take: 20,
+  });
+  res.json(result);
+  //TODO: Notifications after 20
+
+  // Mark them as read
+  const result2 = await prisma.notifications.updateMany({
+    where: {
+      host: req.hostname,
+      status: "unread",
+    },
+    data: {
+      status: "read",
+    },
+  });
+});
+
+app.get("/notifications_count", async (req, res) => {
+  const result = await prisma.notifications.count({
+    where: {
+      host: req.hostname,
+      status: "unread",
+    },
+  });
+  res.json({ count: result });
+});
+
+app.get("/test", (req, res) => {
+  res.json({ success: true });
+  sockets[req.hostname].forEach((socket) => {
+    socket.send(
+      JSON.stringify({
+        type: "notification",
+        sender: "Deltaverse",
+        text: "This is a test notification",
+        nonce: Math.random(),
+      }),
+      "utf8"
+    );
+  });
+});
+
 app.post("/signal", async (req, res) => {
   const type = req.body.type;
   const from = req.body.from;
@@ -523,6 +574,8 @@ app.post("/signal", async (req, res) => {
       //   );
       break;
     case "new post":
+      const from2 = await address_from_username(req.body.from);
+      const originprofile2 = await axios.get(`https://${from2}`);
       const result = await prisma.signals.create({
         data: {
           type: "new post",
@@ -531,7 +584,30 @@ app.post("/signal", async (req, res) => {
           host: req.hostname,
         },
       });
+      const post_id = value.split("/")[2];
       res.status(200).json({ success: true });
+      const res3 = await prisma.notifications.create({
+        data: {
+          sender: "self",
+          text: `${originprofile2.data.profile.fullname} shared a new post`,
+          action: `/u/${originprofile2.data.profile.username}/p/${post_id}/`,
+          status: "unread",
+          host: req.hostname,
+        },
+      });
+      sockets[req.hostname].forEach((socket) => {
+        socket.send(
+          JSON.stringify({
+            icon: originprofile2.data.profile.profile_image,
+            type: "notification",
+            sender: "Deltaverse",
+            text: `${originprofile2.data.profile.fullname} shared a new post`,
+            action: `/u/${originprofile2.data.profile.username}/p/${post_id}/`,
+            nonce: Math.random(),
+          }),
+          "utf8"
+        );
+      });
       break;
     case "message recieved":
       // Add message to the message table

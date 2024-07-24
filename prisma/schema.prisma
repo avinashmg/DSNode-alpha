@@ -68,9 +68,19 @@ model Messages {
 }
 
 model Saved {
- id Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
   username String
   resource String
+  host String
+  timestamp DateTime @default(now())
+}
+
+model Notifications {
+  id Int @id @default(autoincrement())
+  sender String
+  text String
+  action String
+  status String
   host String
   timestamp DateTime @default(now())
 }
