@@ -654,9 +654,9 @@ wss.on("connection", (ws, req) => {
   console.log("WebSocket client connected");
 
   ws.on("message", (message) => {
-    const buffer = Buffer.from(message);
-    console.log("Received message:", buffer.toString("utf8"));
-    ws.send("Echo: " + Buffer.from(`Hostname : ${hostname}`, "utf8"));
+    // const buffer = Buffer.from(message);
+    // console.log("Received message:", buffer.toString("utf8"));
+    // ws.send("Echo: " + Buffer.from(`Hostname : ${hostname}`, "utf8"));
   });
 
   ws.on("close", () => {
