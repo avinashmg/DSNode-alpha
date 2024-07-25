@@ -3,7 +3,6 @@ const cors = require("cors");
 const fs = require("fs");
 const multer = require("multer");
 const { PrismaClient } = require("@prisma/client");
-const { timeStamp } = require("console");
 const axios = require("axios").default;
 const WebSocket = require("ws");
 
@@ -56,6 +55,7 @@ app.get("/", async (req, res) => {
     data = JSON.parse(data);
     delete data.password;
     data.profile["online"] = is_online(req.hostname);
+    res.setHeader("Cache-Control", "public, max-age=60");
     res.json(data);
   } catch (error) {
     console.log(error);
@@ -415,16 +415,10 @@ app.post("/message", async (req, res) => {
       timestamp: true,
     },
   });
-  if (!sockets[req.hostname]) sockets[req.hostname] = [];
-  sockets[req.hostname].forEach((socket) => {
-    socket.send(
-      JSON.stringify({
-        type: "message",
-        message: req.body.msg,
-        room: req.body.username,
-      }),
-      "utf8"
-    );
+  send_user(req.hostname, {
+    type: "message",
+    message: req.body.msg,
+    room: req.body.username,
   });
   let data = await fs.promises.readFile(
     `./profile/${req.profilecode}.json`,
@@ -524,16 +518,11 @@ app.get("/notifications_count", async (req, res) => {
 
 app.get("/test", (req, res) => {
   res.json({ success: true });
-  sockets[req.hostname].forEach((socket) => {
-    socket.send(
-      JSON.stringify({
-        type: "notification",
-        sender: "Deltaverse",
-        text: "This is a test notification",
-        nonce: Math.random(),
-      }),
-      "utf8"
-    );
+  send_user(req.hostname, {
+    type: "notification",
+    sender: "Deltaverse",
+    text: "This is a test notification",
+    nonce: Math.random(),
   });
 });
 
@@ -568,10 +557,6 @@ app.post("/signal", async (req, res) => {
         }),
       ]);
       res.status(200).json({ success: true });
-      //   io.emit(
-      //     "notification",
-      //     "New Notification - Someone replied to your post"
-      //   );
       break;
     case "new post":
       const from2 = await address_from_username(req.body.from);
@@ -596,19 +581,13 @@ app.post("/signal", async (req, res) => {
             host: req.hostname,
           },
         });
-        if (!sockets[req.hostname]) sockets[req.hostname] = [];
-        sockets[req.hostname].forEach((socket) => {
-          socket.send(
-            JSON.stringify({
-              icon: originprofile2.data.profile.profile_image,
-              type: "notification",
-              sender: "Deltaverse",
-              text: `${originprofile2.data.profile.fullname} shared a new post`,
-              action: `/u/${originprofile2.data.profile.username}/p/${post_id}/`,
-              nonce: Math.random(),
-            }),
-            "utf8"
-          );
+        send_user(req.hostname, {
+          icon: originprofile2.data.profile.profile_image,
+          type: "notification",
+          sender: "Deltaverse",
+          text: `${originprofile2.data.profile.fullname} shared a new post`,
+          action: `/u/${originprofile2.data.profile.username}/p/${post_id}/`,
+          nonce: Math.random(),
         });
       }
 
@@ -668,6 +647,13 @@ wss.on("connection", (ws, req) => {
 });
 
 //Functions
+
+const send_user = (hostname, data) => {
+  if (!sockets[req.hostname]) sockets[req.hostname] = [];
+  sockets[hostname].forEach((socket) => {
+    socket.send(JSON.stringify(data), "utf8");
+  });
+};
 
 const is_online = (host) => {
   if (!sockets[host]) return false;
